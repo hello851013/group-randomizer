@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Trash2, Pin } from 'lucide-react';
@@ -23,6 +23,8 @@ export function SortableItem({
     isDragging,
   } = useSortable({ id: id });
 
+  const [showActions, setShowActions] = useState(false);
+
   const isPinned = person?.isPinned || false;
   const theme = getCategoryTheme(person?.sourceId);
 
@@ -42,15 +44,22 @@ export function SortableItem({
     return (name || '').trim().slice(0, 1).toUpperCase();
   };
 
-  const iconSize = density === 'micro' ? 12 : density === 'mini' ? 13 : density === 'compact' ? 14 : 16;
+  const iconSize = density === 'micro' ? 12 : density === 'mini' ? 13 : density === 'compact' ? 14 : 15;
   const displayName = categoryName || theme.name;
   const displayShort = categoryShortName || theme.shortName || theme.id;
+
+  const handleCardClick = (e) => {
+    if (e.target.closest('.card-actions')) return;
+    setShowActions(prev => !prev);
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`draggable-card card-density-${density} ${isDragging ? 'is-dragging' : ''} ${isPinned ? 'is-pinned' : ''}`}
+      className={`draggable-card card-density-${density} ${isDragging ? 'is-dragging' : ''} ${isPinned ? 'is-pinned' : ''} ${showActions && !isDragging ? 'actions-active' : ''}`}
+      onClick={handleCardClick}
+      onMouseLeave={() => setShowActions(false)}
       {...attributes}
       {...listeners}
     >
@@ -66,13 +75,12 @@ export function SortableItem({
           {getInitials(person?.name)}
         </div>
         
-        <span className="person-name" title={person?.name}>{person?.name}</span>
+        <span className="person-name" title={person?.name}>
+          {isPinned && <span className="pinned-indicator" title="已釘選">📌</span>}
+          {person?.name}
+        </span>
 
-        {isPinned ? (
-          <span className="pinned-badge" title="已釘選 - 隨機分組時保持在此組">
-            📌<span className="pin-text"> 釘選</span>
-          </span>
-        ) : !isUnassigned ? (
+        {!isUnassigned ? (
           <span 
             className="category-pill"
             style={{
@@ -88,18 +96,35 @@ export function SortableItem({
         ) : null}
       </div>
       
-      <div className="card-actions" onPointerDown={(e) => e.stopPropagation()}>
+      {/* 需求 1：釘選與刪除碰到或點選時才顯示懸浮遮罩，平常不佔空間完整顯示名稱與分組 */}
+      <div 
+        className="card-actions" 
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         {onTogglePin && (
           <button 
+            type="button"
             className={`action-btn pin-btn ${isPinned ? 'active' : ''}`} 
-            onClick={() => onTogglePin(id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePin(id);
+            }}
             title={isPinned ? "取消釘選" : "釘選固定此人"}
           >
             <Pin size={iconSize} fill={isPinned ? "currentColor" : "none"} />
           </button>
         )}
         {onDelete && (
-          <button className="action-btn delete-btn" onClick={() => onDelete(id)} title="刪除">
+          <button 
+            type="button"
+            className="action-btn delete-btn" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(id);
+            }} 
+            title="刪除"
+          >
             <Trash2 size={iconSize} />
           </button>
         )}

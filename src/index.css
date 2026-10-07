@@ -713,6 +713,8 @@ input, textarea {
 
 /* Draggable Card Base */
 .draggable-card {
+  position: relative;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
@@ -784,8 +786,9 @@ input, textarea {
 .card-name {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   overflow: hidden;
+  width: 100%;
   flex: 1;
   min-width: 0;
 }
@@ -799,7 +802,7 @@ input, textarea {
   font-size: 0.82rem;
   letter-spacing: -0.01em;
   flex: 1 1 auto;
-  min-width: 58px;
+  min-width: 0;
   color: var(--text-primary);
 }
 
@@ -813,11 +816,11 @@ input, textarea {
   color: white;
 }
 
-/* Category Pill */
+/* Category Pill - 完整顯示在卡片最右側，不被擠壓切角 */
 .category-pill {
   font-size: 0.65rem;
   font-weight: 600;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid transparent;
   flex-shrink: 0;
@@ -825,6 +828,7 @@ input, textarea {
   letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
 }
 
 .cat-short {
@@ -868,37 +872,73 @@ input, textarea {
   display: none !important;
 }
 
+/* 需求 1：釘選與刪除按鈕碰到 (hover) 或點選 (active) 才浮動遮罩顯示，平時絕對定位隱藏不佔任何寬度，名稱與分組完整顯示 */
 .card-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
   display: flex;
-  gap: 4px;
   align-items: center;
-  margin-left: 4px;
-  flex-shrink: 0;
+  gap: 4px;
+  padding: 0 6px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: -6px 0 12px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.16s ease, visibility 0.16s ease;
+  z-index: 10;
+}
+
+.draggable-card:hover .card-actions,
+.draggable-card.actions-active .card-actions {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .action-btn {
   color: var(--text-secondary);
-  opacity: 0;
-  transition: opacity 0.2s, color 0.2s, transform 0.2s;
+  opacity: 1;
+  transition: color 0.15s, transform 0.15s, background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: 3px;
   border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
 }
 
-.draggable-card:hover .action-btn {
-  opacity: 1;
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: scale(1.1);
 }
 
-.action-btn.pin-btn:hover {
+.action-btn.pin-btn:hover,
+.action-btn.pin-btn.active {
   color: #f59e0b;
-  transform: scale(1.15);
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.25);
 }
 
 .action-btn.delete-btn:hover {
-  color: var(--danger);
-  transform: scale(1.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.pinned-indicator {
+  font-size: 0.72rem;
+  margin-right: 3px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* 🌟 PINNED CARD PROMINENCE 🌟 */

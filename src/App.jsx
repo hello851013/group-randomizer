@@ -22,7 +22,7 @@ import { SortableItem } from './components/SortableItem';
 import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.2.0';
+export const APP_VERSION = 'v1.2.1';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
@@ -211,22 +211,28 @@ function App() {
   const handleReset = () => {
     setColumns(prev => {
       const newCols = {};
-      Object.keys(prev).forEach(k => newCols[k] = [...prev[k]]);
       
-      const groupKeys = Object.keys(newCols).filter(k => k.startsWith('group-'));
+      // Initialize all source columns and reset their items' pinned status
+      Object.keys(prev).forEach(key => {
+        if (key.startsWith('source-')) {
+          newCols[key] = (prev[key] || []).map(item => ({ ...item, isPinned: false }));
+        } else if (key.startsWith('group-')) {
+          newCols[key] = [];
+        } else {
+          newCols[key] = [...(prev[key] || [])];
+        }
+      });
+      
+      // Return ALL items from every group back to their respective source pool
+      const groupKeys = Object.keys(prev).filter(k => k.startsWith('group-'));
       groupKeys.forEach(key => {
-        const itemsToProcess = [...newCols[key]];
-        newCols[key] = [];
-        itemsToProcess.forEach(item => {
-          if (item.isPinned) {
-            newCols[key].push(item);
-          } else {
-            const src = item.sourceId || 'source-1';
-            if (!newCols[src]) newCols[src] = [];
-            newCols[src].push(item);
-          }
+        (prev[key] || []).forEach(item => {
+          const src = item.sourceId || 'source-1';
+          if (!newCols[src]) newCols[src] = [];
+          newCols[src].push({ ...item, isPinned: false });
         });
       });
+      
       return newCols;
     });
   };
