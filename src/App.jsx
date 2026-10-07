@@ -13,15 +13,16 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { Menu, Wand2, Plus, Users, RotateCcw, X, Monitor, Smartphone } from 'lucide-react';
+import { Menu, Wand2, Plus, Users, RotateCcw, X, Monitor, Smartphone, Share2, Sparkles, Clipboard } from 'lucide-react';
 import { DroppableColumn } from './components/DroppableColumn';
 import { SortableItem } from './components/SortableItem';
+import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.1.1';
+export const APP_VERSION = 'v1.1.2';
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
   const [viewMode, setViewMode] = useState('desktop'); // 'desktop' | 'mobile'
   const [numGroups, setNumGroups] = useState(6);
   const [numSources, setNumSources] = useState(1);
@@ -29,6 +30,32 @@ function App() {
   const [sourceQuotas, setSourceQuotas] = useState({});
   const [maxPerGroup, setMaxPerGroup] = useState('');
   const [inputText, setInputText] = useState('');
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // 快速範例名單填入
+  const handleFillSample = () => {
+    const sampleNames = [
+      '王小明', '陳大頭', '林小美', '張建華', '黃雅婷', '李宗翰', 
+      '劉怡君', '吳冠宇', '蔡佩珊', '楊凱文', '許淑芬', '鄭柏豪'
+    ];
+    setInputText(sampleNames.join(', '));
+  };
+
+  // 一鍵貼上剪貼簿名單
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setInputText(prev => prev ? `${prev}, ${text}` : text);
+        }
+      } else {
+        alert("瀏覽器限制無法直接讀取剪貼簿，請於輸入框內長按並選擇「貼上」");
+      }
+    } catch {
+      alert("無法存取剪貼簿，請直接在文字框中長按貼上");
+    }
+  };
 
   // 確保在使用者刪除輸入格 (暫時為空字串) 時，系統仍具備大於等於 1 的預設安全計算值
   const safeNumSources = Math.max(1, parseInt(numSources, 10) || 1);
@@ -403,7 +430,12 @@ function App() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">載入目標</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>載入目標分類</label>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                目前已有 {columns[activeSource]?.length || 0} 人
+              </span>
+            </div>
             <select 
               className="text-input" 
               value={activeSource}
@@ -412,9 +444,10 @@ function App() {
               {Array.from({ length: safeNumSources }).map((_, i) => {
                 const sId = `source-${i+1}`;
                 const theme = getCategoryTheme(sId);
+                const count = columns[sId]?.length || 0;
                 return (
                   <option key={sId} value={sId}>
-                    分類 {i+1} ({theme.name})
+                    分類 {i+1} ({theme.name}) — 已有 {count} 人
                   </option>
                 );
               })}
@@ -422,7 +455,29 @@ function App() {
           </div>
           
           <div className="form-group">
-            <label className="form-label">輸入名單 (換行或逗號分隔)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>輸入名單 (換行或逗號)</label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button 
+                  type="button" 
+                  className="quick-link-btn"
+                  onClick={handlePasteClipboard}
+                  title="一鍵貼上剪貼簿內容"
+                >
+                  <Clipboard size={12} />
+                  <span>貼上</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="quick-link-btn"
+                  onClick={handleFillSample}
+                  title="填入12位範例測試名單"
+                >
+                  <Sparkles size={12} />
+                  <span>填範例</span>
+                </button>
+              </div>
+            </div>
             <textarea 
               className="textarea-input"
               value={inputText}
@@ -506,32 +561,12 @@ function App() {
             </div>
           )}
         </div>
-
-        <div className="sidebar-footer">
-          <button 
-            className="btn-secondary" 
-            style={{ justifyContent: 'center' }}
-            onClick={handleReset}
-          >
-            <RotateCcw size={16} />
-            重置名單回未分配區
-          </button>
-
-          <button 
-            className="btn-primary" 
-            style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)', marginBottom: 0 }}
-            onClick={handleRandomize}
-          >
-            <Wand2 size={16} />
-            隨機分組
-          </button>
-        </div>
       </div>
 
       <div className="main-content">
         <div className="top-bar">
           <div className="top-bar-left">
-            <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "隱藏面板" : "顯示面板"}>
+            <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "隱藏面板" : "名單設定"}>
               <Menu size={20} />
             </button>
             <h1 className="workspace-title">
@@ -541,6 +576,37 @@ function App() {
           </div>
 
           <div className="top-bar-actions">
+            {/* 重置名單按鈕 */}
+            <button 
+              className="action-pill-btn reset-pill-btn" 
+              onClick={handleReset}
+              title="將所有組員重置回未分配池"
+            >
+              <RotateCcw size={15} />
+              <span className="btn-label-text">重置名單</span>
+            </button>
+
+            {/* 輸出分享按鈕 */}
+            <button 
+              className="action-pill-btn share-pill-btn" 
+              onClick={() => setShareModalOpen(true)}
+              title="匯出與分享分組結果 (複製文字/產生圖卡)"
+            >
+              <Share2 size={15} />
+              <span className="btn-label-text">輸出分享</span>
+            </button>
+
+            {/* 隨機分組核心按鈕 */}
+            <button 
+              className="action-pill-btn randomize-pill-btn" 
+              onClick={handleRandomize}
+              title="開始隨機分組"
+            >
+              <Wand2 size={15} />
+              <span>隨機分組</span>
+            </button>
+
+            {/* RWD 檢視切換 */}
             <div className="rwd-switcher">
               <button 
                 className={`rwd-tab-btn ${viewMode === 'desktop' ? 'active' : ''}`}
@@ -551,7 +617,7 @@ function App() {
                 title="切換至電腦版檢視"
               >
                 <Monitor size={14} />
-                <span>電腦版</span>
+                <span className="rwd-label">電腦</span>
               </button>
               <button 
                 className={`rwd-tab-btn ${viewMode === 'mobile' ? 'active' : ''}`}
@@ -562,7 +628,7 @@ function App() {
                 title="切換至手機版檢視"
               >
                 <Smartphone size={14} />
-                <span>手機版</span>
+                <span className="rwd-label">手機</span>
               </button>
             </div>
           </div>
@@ -624,6 +690,14 @@ function App() {
           </DragOverlay>
         </DndContext>
       </div>
+
+      {/* 輸出與分享結果彈跳視窗 */}
+      <ShareModal 
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        columns={columns}
+        numGroups={safeNumGroups}
+      />
     </div>
   );
 }
