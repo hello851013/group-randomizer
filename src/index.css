@@ -619,7 +619,7 @@ input, textarea {
 .card-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   overflow: hidden;
   flex: 1;
   min-width: 0;
@@ -629,8 +629,11 @@ input, textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
-  flex-shrink: 1;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
 }
 
 .avatar-placeholder {
@@ -653,12 +656,49 @@ input, textarea {
   flex-shrink: 0;
   white-space: nowrap;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
 }
 
+.cat-short {
+  display: none;
+}
+
+.cat-full {
+  display: inline;
+}
+
+.pin-text {
+  display: inline;
+}
+
+.card-density-compact .category-pill,
 .card-density-mini .category-pill,
-.card-density-micro .category-pill {
-  font-size: 0.58rem;
-  padding: 0 3px;
+.card-density-micro .category-pill,
+.app-container.mode-mobile .category-pill {
+  font-size: 0.62rem;
+  padding: 1px 4px;
+}
+
+.card-density-compact .cat-full,
+.card-density-mini .cat-full,
+.card-density-micro .cat-full,
+.app-container.mode-mobile .cat-full {
+  display: none !important;
+}
+
+.card-density-compact .cat-short,
+.card-density-mini .cat-short,
+.card-density-micro .cat-short,
+.app-container.mode-mobile .cat-short {
+  display: inline !important;
+}
+
+.card-density-compact .pin-text,
+.card-density-mini .pin-text,
+.card-density-micro .pin-text,
+.app-container.mode-mobile .pin-text {
+  display: none !important;
 }
 
 .card-actions {
@@ -896,9 +936,20 @@ input, textarea {
   min-height: 0 !important;
   overflow-y: auto !important;
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 6px !important;
   align-items: stretch;
+}
+
+.app-container.mode-mobile .avatar-placeholder {
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 0.65rem !important;
+}
+
+.app-container.mode-mobile .draggable-card {
+  padding: 4px 6px !important;
+  gap: 4px !important;
 }
 
 .app-container.mode-mobile .column-header {
@@ -1065,9 +1116,32 @@ input, textarea {
     min-height: 0 !important;
     overflow-y: auto !important;
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 6px !important;
     align-items: stretch;
+  }
+
+  .avatar-placeholder {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .draggable-card {
+    padding: 4px 6px !important;
+    gap: 4px !important;
+  }
+
+  .cat-full {
+    display: none !important;
+  }
+
+  .cat-short {
+    display: inline !important;
+  }
+
+  .pin-text {
+    display: none !important;
   }
 
   .column-header {

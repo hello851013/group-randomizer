@@ -54,11 +54,11 @@ export function SortableItem({ id, person, onDelete, onTogglePin, density = 'nor
           {getInitials(person?.name)}
         </div>
         
-        <span className="person-name">{person?.name}</span>
+        <span className="person-name" title={person?.name}>{person?.name}</span>
 
         {isPinned ? (
           <span className="pinned-badge" title="已釘選 - 隨機分組時保持在此組">
-            📌 釘選
+            📌<span className="pin-text"> 釘選</span>
           </span>
         ) : (
           <span 
@@ -68,8 +68,10 @@ export function SortableItem({ id, person, onDelete, onTogglePin, density = 'nor
               backgroundColor: theme.badgeBg,
               borderColor: theme.border,
             }}
+            title={theme.name}
           >
-            {theme.name}
+            <span className="cat-full">{theme.name}</span>
+            <span className="cat-short">{theme.shortName || theme.id}</span>
           </span>
         )}
       </div>

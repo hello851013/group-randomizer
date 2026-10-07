@@ -18,7 +18,7 @@ import { DroppableColumn } from './components/DroppableColumn';
 import { SortableItem } from './components/SortableItem';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.1.0';
+export const APP_VERSION = 'v1.1.1';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -29,6 +29,10 @@ function App() {
   const [sourceQuotas, setSourceQuotas] = useState({});
   const [maxPerGroup, setMaxPerGroup] = useState('');
   const [inputText, setInputText] = useState('');
+
+  // 確保在使用者刪除輸入格 (暫時為空字串) 時，系統仍具備大於等於 1 的預設安全計算值
+  const safeNumSources = Math.max(1, parseInt(numSources, 10) || 1);
+  const safeNumGroups = Math.max(1, parseInt(numGroups, 10) || 1);
   
   // State for all columns: { 'source-1': [], 'group-1': [], ... }
   const [columns, setColumns] = useState({
@@ -37,25 +41,25 @@ function App() {
 
   const [activeId, setActiveId] = useState(null);
 
-  // Initialize group columns based on numGroups and numSources
+  // Initialize group columns based on safeNumGroups and safeNumSources
   useEffect(() => {
     setColumns(prev => {
       const newCols = { ...prev };
-      for (let i = 1; i <= numSources; i++) {
+      for (let i = 1; i <= safeNumSources; i++) {
         const sourceId = `source-${i}`;
         newCols[sourceId] = prev[sourceId] || [];
       }
-      for (let i = 1; i <= numGroups; i++) {
+      for (let i = 1; i <= safeNumGroups; i++) {
         const groupId = `group-${i}`;
         newCols[groupId] = prev[groupId] || [];
       }
       return newCols;
     });
     
-    if (parseInt(activeSource.split('-')[1]) > numSources) {
+    if (parseInt(activeSource.split('-')[1]) > safeNumSources) {
       setActiveSource('source-1');
     }
-  }, [numGroups, numSources, activeSource]);
+  }, [safeNumGroups, safeNumSources, activeSource]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -93,8 +97,8 @@ function App() {
     if (window.confirm("確定要清空所有名單嗎？")) {
       setColumns(prev => {
         const newCols = {};
-        for (let i = 1; i <= numSources; i++) newCols[`source-${i}`] = [];
-        for (let i = 1; i <= numGroups; i++) newCols[`group-${i}`] = [];
+        for (let i = 1; i <= safeNumSources; i++) newCols[`source-${i}`] = [];
+        for (let i = 1; i <= safeNumGroups; i++) newCols[`group-${i}`] = [];
         return newCols;
       });
     }
@@ -149,7 +153,7 @@ function App() {
     setColumns(prev => {
       // 1. Collect all available (non-pinned) items from prev, grouped by source
       const availableBySource = {};
-      for (let i = 1; i <= numSources; i++) availableBySource[`source-${i}`] = [];
+      for (let i = 1; i <= safeNumSources; i++) availableBySource[`source-${i}`] = [];
 
       Object.keys(prev).forEach(key => {
         (prev[key] || []).forEach(item => {
@@ -178,9 +182,9 @@ function App() {
 
       // 3. Build new columns: start with only pinned items
       const newCols = {};
-      for (let i = 1; i <= numSources; i++) newCols[`source-${i}`] = [];
+      for (let i = 1; i <= safeNumSources; i++) newCols[`source-${i}`] = [];
       const activeGroupKeys = [];
-      for (let i = 1; i <= numGroups; i++) {
+      for (let i = 1; i <= safeNumGroups; i++) {
         const gk = `group-${i}`;
         activeGroupKeys.push(gk);
         // Keep only pinned items from previous groups
@@ -385,8 +389,16 @@ function App() {
               type="number" 
               className="text-input"
               value={numSources}
-              onChange={(e) => setNumSources(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => setNumSources(e.target.value)}
+              onBlur={() => {
+                if (!numSources || parseInt(numSources, 10) < 1) {
+                  setNumSources(1);
+                } else {
+                  setNumSources(parseInt(numSources, 10));
+                }
+              }}
               min="1"
+              placeholder="最少 1"
             />
           </div>
 
@@ -397,7 +409,7 @@ function App() {
               value={activeSource}
               onChange={(e) => setActiveSource(e.target.value)}
             >
-              {Array.from({ length: numSources }).map((_, i) => {
+              {Array.from({ length: safeNumSources }).map((_, i) => {
                 const sId = `source-${i+1}`;
                 const theme = getCategoryTheme(sId);
                 return (
@@ -435,8 +447,16 @@ function App() {
               type="number" 
               className="text-input"
               value={numGroups}
-              onChange={(e) => setNumGroups(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => setNumGroups(e.target.value)}
+              onBlur={() => {
+                if (!numGroups || parseInt(numGroups, 10) < 1) {
+                  setNumGroups(1);
+                } else {
+                  setNumGroups(parseInt(numGroups, 10));
+                }
+              }}
               min="1"
+              placeholder="最少 1"
             />
           </div>
 
@@ -446,16 +466,21 @@ function App() {
               type="number" 
               className="text-input"
               value={maxPerGroup}
-              onChange={(e) => setMaxPerGroup(e.target.value ? Math.max(1, parseInt(e.target.value)) : '')}
+              onChange={(e) => setMaxPerGroup(e.target.value)}
+              onBlur={() => {
+                if (maxPerGroup !== '' && parseInt(maxPerGroup, 10) < 1) {
+                  setMaxPerGroup('');
+                }
+              }}
               min="1"
-              placeholder="例如: 3"
+              placeholder="例如: 3 (無限制留空)"
             />
           </div>
 
-          {numSources > 1 && (
+          {safeNumSources > 1 && (
             <div className="form-group">
               <label className="form-label">各分類抽取配額 (每組)</label>
-              {Array.from({ length: numSources }).map((_, i) => {
+              {Array.from({ length: safeNumSources }).map((_, i) => {
                 const sId = `source-${i+1}`;
                 const theme = getCategoryTheme(sId);
                 return (
@@ -470,7 +495,7 @@ function App() {
                     <input 
                       type="number" 
                       className="text-input quota-input"
-                      value={sourceQuotas[sId] || ''}
+                      value={sourceQuotas[sId] ?? ''}
                       onChange={(e) => setSourceQuotas(prev => ({...prev, [sId]: e.target.value}))}
                       min="0"
                       placeholder="不限"
@@ -553,8 +578,8 @@ function App() {
           <div className="board-layout">
             <div className="source-area">
               <h3 className="area-title">未分配名單 (來源池)</h3>
-              <div className={`unassigned-zone ${numSources > 2 ? 'multi-sources' : ''}`}>
-                {Array.from({ length: numSources }).map((_, i) => {
+              <div className={`unassigned-zone ${safeNumSources > 2 ? 'multi-sources' : ''}`}>
+                {Array.from({ length: safeNumSources }).map((_, i) => {
                   const sourceId = `source-${i+1}`;
                   return (
                     <div key={sourceId} className="unassigned-col-wrapper">
@@ -575,7 +600,7 @@ function App() {
             <div className="group-area">
               <h3 className="area-title">分組結果</h3>
               <div className="groups-matrix">
-                {Array.from({ length: numGroups }).map((_, i) => {
+                {Array.from({ length: safeNumGroups }).map((_, i) => {
                   const groupId = `group-${i + 1}`;
                   return (
                     <DroppableColumn 
