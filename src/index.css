@@ -226,6 +226,28 @@ input, textarea {
   height: 50px;
 }
 
+/* 自定義分類名稱設定 */
+.category-names-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.cat-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-name-input {
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 5px;
+}
+
 .btn-primary {
   background: var(--primary-accent);
   color: white;
@@ -563,6 +585,76 @@ input, textarea {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* 標題自定義名稱與編輯互動 */
+.column-title-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-left: -4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.column-title-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.title-text-content {
+  line-height: 1.2;
+}
+
+.title-edit-icon {
+  opacity: 0.35;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.column-title-text:hover .title-edit-icon {
+  opacity: 1;
+  color: var(--primary-accent);
+}
+
+.title-edit-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.title-edit-input {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1.5px solid var(--primary-accent);
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  outline: none;
+  width: 100px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+.title-save-btn {
+  background: var(--primary-accent);
+  border: none;
+  color: white;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.title-save-btn:hover {
+  filter: brightness(1.15);
 }
 
 .column-content {
@@ -630,6 +722,9 @@ input, textarea {
   cursor: grab;
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s, border-color 0.15s;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none !important;
+  -webkit-touch-callout: none;
 }
 
 .draggable-card:hover {
@@ -647,18 +742,18 @@ input, textarea {
 
 /* Card Density Scaling */
 .card-density-normal {
-  padding: 6px 10px;
+  padding: 5px 8px;
   font-size: 0.85rem;
 }
 .card-density-normal .avatar-placeholder {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   font-size: 0.7rem;
 }
 
 .card-density-compact {
-  padding: 4px 7px;
-  font-size: 0.78rem;
+  padding: 4px 6px;
+  font-size: 0.8rem;
 }
 .card-density-compact .avatar-placeholder {
   width: 18px;
@@ -667,8 +762,8 @@ input, textarea {
 }
 
 .card-density-mini {
-  padding: 3px 6px;
-  font-size: 0.72rem;
+  padding: 3px 5px;
+  font-size: 0.75rem;
 }
 .card-density-mini .avatar-placeholder {
   width: 16px;
@@ -677,12 +772,12 @@ input, textarea {
 }
 
 .card-density-micro {
-  padding: 2px 5px;
-  font-size: 0.68rem;
+  padding: 2px 4px;
+  font-size: 0.7rem;
 }
 .card-density-micro .avatar-placeholder {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   font-size: 0.55rem;
 }
 
@@ -695,14 +790,16 @@ input, textarea {
   min-width: 0;
 }
 
+/* 確保卡片中的名字能完整容納 4 個中文字元不被擠壓 */
 .person-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 58px;
   color: var(--text-primary);
 }
 

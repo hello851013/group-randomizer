@@ -1,18 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import { Edit2, Check } from 'lucide-react';
 import { SortableItem } from './SortableItem';
 import { getCategoryTheme, getDensity } from '../theme';
 
-export function DroppableColumn({ id, title, items, onDeleteItem, onTogglePin, isSpecial }) {
+export function DroppableColumn({ 
+  id, 
+  title, 
+  items, 
+  onDeleteItem, 
+  onTogglePin, 
+  isSpecial,
+  onRenameTitle,
+  getCategoryName,
+  getCategoryShortName
+}) {
   const { setNodeRef } = useDroppable({
     id: id,
   });
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editVal, setEditVal] = useState(title);
+
+  useEffect(() => {
+    setEditVal(title);
+  }, [title]);
+
+  const handleSaveTitle = () => {
+    setIsEditing(false);
+    if (editVal.trim() && onRenameTitle) {
+      onRenameTitle(id, editVal.trim());
+    } else {
+      setEditVal(title);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      setEditVal(title);
+      setIsEditing(false);
+    }
+  };
+
   const theme = isSpecial ? getCategoryTheme(id) : null;
   const density = getDensity(items.length);
-  // Source columns split into 2 equal columns (左右分欄) whenever there are 2+ items to eliminate scrolling
-  const isSplitGrid = isSpecial && items.length >= 2;
+  const isSplitGrid = isSpecial && items.length >= 3;
 
   return (
     <div 
@@ -30,7 +65,34 @@ export function DroppableColumn({ id, title, items, onDeleteItem, onTogglePin, i
               style={{ backgroundColor: theme.color, boxShadow: `0 0 8px ${theme.color}` }}
             />
           )}
-          <span style={isSpecial ? { color: theme.color, fontWeight: 700 } : {}}>{title}</span>
+
+          {isEditing ? (
+            <div className="title-edit-wrapper" onClick={(e) => e.stopPropagation()}>
+              <input 
+                type="text" 
+                className="title-edit-input" 
+                value={editVal}
+                onChange={(e) => setEditVal(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                maxLength={20}
+              />
+              <button className="title-save-btn" onClick={handleSaveTitle}>
+                <Check size={12} />
+              </button>
+            </div>
+          ) : (
+            <span 
+              className="column-title-text"
+              style={isSpecial ? { color: theme.color, fontWeight: 700 } : {}}
+              onClick={() => setIsEditing(true)}
+              title="點擊自定義名稱"
+            >
+              <span className="title-text-content">{title}</span>
+              <Edit2 size={11} className="title-edit-icon" />
+            </span>
+          )}
         </span>
         <span 
           className="column-badge"
@@ -60,6 +122,9 @@ export function DroppableColumn({ id, title, items, onDeleteItem, onTogglePin, i
               density={density}
               onDelete={onDeleteItem}
               onTogglePin={onTogglePin}
+              categoryName={getCategoryName ? getCategoryName(person.sourceId) : null}
+              categoryShortName={getCategoryShortName ? getCategoryShortName(person.sourceId) : null}
+              isUnassigned={isSpecial}
             />
           ))}
         </SortableContext>

@@ -2,7 +2,15 @@ import React, { useState, useRef } from 'react';
 import { X, Copy, Check, Share2, Download, Image as ImageIcon, FileText } from 'lucide-react';
 import { getCategoryTheme } from '../theme';
 
-export function ShareModal({ isOpen, onClose, columns, numGroups }) {
+export function ShareModal({ 
+  isOpen, 
+  onClose, 
+  columns, 
+  numGroups,
+  getGroupName,
+  getCategoryName,
+  getCategoryShortName 
+}) {
   const [activeTab, setActiveTab] = useState('text'); // 'text' | 'image'
   const [copied, setCopied] = useState(false);
   const [isGeneratingImg, setIsGeneratingImg] = useState(false);
@@ -18,9 +26,10 @@ export function ShareModal({ isOpen, onClose, columns, numGroups }) {
     const groupId = `group-${i}`;
     const members = columns[groupId] || [];
     totalAssignedPeople += members.length;
+    const title = getGroupName ? getGroupName(groupId) : `第 ${i} 組`;
     groupsData.push({
       id: groupId,
-      title: `第 ${i} 組`,
+      title: title,
       members: members
     });
   }
@@ -43,7 +52,8 @@ export function ShareModal({ isOpen, onClose, columns, numGroups }) {
         g.members.forEach(m => {
           const theme = getCategoryTheme(m.sourceId);
           const pinMark = m.isPinned ? ' [📌釘選]' : '';
-          const catMark = theme?.shortName ? ` (${theme.shortName})` : '';
+          const shortName = getCategoryShortName ? getCategoryShortName(m.sourceId) : theme?.shortName;
+          const catMark = shortName ? ` (${shortName})` : '';
           text += `   • ${m.name}${catMark}${pinMark}\n`;
         });
       }

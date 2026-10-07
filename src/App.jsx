@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   DndContext, 
-  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  closestCorners,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragOverlay,
@@ -19,7 +22,7 @@ import { SortableItem } from './components/SortableItem';
 import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.1.2';
+export const APP_VERSION = 'v1.2.0';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
@@ -31,6 +34,38 @@ function App() {
   const [maxPerGroup, setMaxPerGroup] = useState('');
   const [inputText, setInputText] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // 自定義名稱狀態 (分類與組別)
+  const [categoryNames, setCategoryNames] = useState({});
+  const [groupNames, setGroupNames] = useState({});
+
+  const getCategoryName = (sourceId) => {
+    if (categoryNames[sourceId]?.trim()) return categoryNames[sourceId].trim();
+    const theme = getCategoryTheme(sourceId);
+    return theme?.name || '分類 1';
+  };
+
+  const getCategoryShortName = (sourceId) => {
+    if (categoryNames[sourceId]?.trim()) {
+      return categoryNames[sourceId].trim().slice(0, 2);
+    }
+    const theme = getCategoryTheme(sourceId);
+    return theme?.shortName || '分1';
+  };
+
+  const getGroupName = (groupId) => {
+    if (groupNames[groupId]?.trim()) return groupNames[groupId].trim();
+    const idx = parseInt(groupId.replace('group-', ''), 10);
+    return `第 ${idx || 1} 組`;
+  };
+
+  const handleRenameTitle = (id, newTitle) => {
+    if (id.startsWith('source-')) {
+      setCategoryNames(prev => ({ ...prev, [id]: newTitle }));
+    } else if (id.startsWith('group-')) {
+      setGroupNames(prev => ({ ...prev, [id]: newTitle }));
+    }
+  };
 
   // 快速範例名單填入
   const handleFillSample = () => {
@@ -88,16 +123,36 @@ function App() {
     }
   }, [safeNumGroups, safeNumSources, activeSource]);
 
+  // 需求 5：全面優化滑鼠與手機觸控感應器 (解決手機與電腦不好拖拉的問題)
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 5,
-      }
+        distance: 4, // 電腦版滑鼠移動 4px 立即順暢觸發拖拉
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100, // 手機版輕按 100ms 立即啟動拖拉，同時保留滑動滾動彈性
+        tolerance: 6,
+      },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // 專業雙階段碰撞檢測：優先 pointerWithin，回退至 rectIntersection 與 closestCorners
+  const customCollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    const rectCollisions = rectIntersection(args);
+    if (rectCollisions.length > 0) {
+      return rectCollisions;
+    }
+    return closestCorners(args);
+  };
 
   const handleAddNames = () => {
     if (!inputText.trim()) return;
@@ -429,6 +484,33 @@ function App() {
             />
           </div>
 
+          {/* 需求 1：自定義分類名稱 */}
+          <div className="form-group">
+            <label className="form-label">自定義分類名稱</label>
+            <div className="category-names-list">
+              {Array.from({ length: safeNumSources }).map((_, i) => {
+                const sId = `source-${i+1}`;
+                const theme = getCategoryTheme(sId);
+                return (
+                  <div key={`cat-name-input-${sId}`} className="cat-name-row">
+                    <span 
+                      className="source-color-dot" 
+                      style={{ backgroundColor: theme.color, boxShadow: `0 0 6px ${theme.color}` }} 
+                    />
+                    <input 
+                      type="text"
+                      className="text-input cat-name-input"
+                      value={categoryNames[sId] ?? ''}
+                      onChange={(e) => setCategoryNames(prev => ({ ...prev, [sId]: e.target.value }))}
+                      placeholder={theme.name}
+                      maxLength={15}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <label className="form-label" style={{ marginBottom: 0 }}>載入目標分類</label>
@@ -443,11 +525,11 @@ function App() {
             >
               {Array.from({ length: safeNumSources }).map((_, i) => {
                 const sId = `source-${i+1}`;
-                const theme = getCategoryTheme(sId);
+                const name = getCategoryName(sId);
                 const count = columns[sId]?.length || 0;
                 return (
                   <option key={sId} value={sId}>
-                    分類 {i+1} ({theme.name}) — 已有 {count} 人
+                    {name} — 已有 {count} 人
                   </option>
                 );
               })}
@@ -538,6 +620,7 @@ function App() {
               {Array.from({ length: safeNumSources }).map((_, i) => {
                 const sId = `source-${i+1}`;
                 const theme = getCategoryTheme(sId);
+                const name = getCategoryName(sId);
                 return (
                   <div key={`quota-${i}`} className="quota-row">
                     <span className="quota-label" style={{ color: theme.color }}>
@@ -545,7 +628,7 @@ function App() {
                         className="source-color-dot" 
                         style={{ backgroundColor: theme.color, boxShadow: `0 0 6px ${theme.color}` }} 
                       />
-                      分類 {i+1}
+                      {name}
                     </span>
                     <input 
                       type="number" 
@@ -636,7 +719,7 @@ function App() {
 
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={customCollisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
@@ -651,11 +734,14 @@ function App() {
                     <div key={sourceId} className="unassigned-col-wrapper">
                       <DroppableColumn 
                         id={sourceId} 
-                        title={`分類 ${i+1}`} 
+                        title={getCategoryName(sourceId)} 
                         items={columns[sourceId] || []} 
                         onDeleteItem={handleDeleteItem}
                         onTogglePin={handleTogglePin}
                         isSpecial={true}
+                        onRenameTitle={handleRenameTitle}
+                        getCategoryName={getCategoryName}
+                        getCategoryShortName={getCategoryShortName}
                       />
                     </div>
                   );
@@ -672,10 +758,13 @@ function App() {
                     <DroppableColumn 
                       key={groupId} 
                       id={groupId} 
-                      title={`第 ${i + 1} 組`} 
+                      title={getGroupName(groupId)} 
                       items={columns[groupId] || []}
                       onDeleteItem={handleDeleteItem}
                       onTogglePin={handleTogglePin}
+                      onRenameTitle={handleRenameTitle}
+                      getCategoryName={getCategoryName}
+                      getCategoryShortName={getCategoryShortName}
                     />
                   );
                 })}
@@ -685,7 +774,12 @@ function App() {
 
           <DragOverlay dropAnimation={dropAnimation}>
             {activeId ? (
-              <SortableItem id={activeId} person={getActivePerson()} />
+              <SortableItem 
+                id={activeId} 
+                person={getActivePerson()} 
+                categoryName={getActivePerson() ? getCategoryName(getActivePerson().sourceId) : null}
+                categoryShortName={getActivePerson() ? getCategoryShortName(getActivePerson().sourceId) : null}
+              />
             ) : null}
           </DragOverlay>
         </DndContext>
@@ -697,6 +791,9 @@ function App() {
         onClose={() => setShareModalOpen(false)}
         columns={columns}
         numGroups={safeNumGroups}
+        getGroupName={getGroupName}
+        getCategoryName={getCategoryName}
+        getCategoryShortName={getCategoryShortName}
       />
     </div>
   );
