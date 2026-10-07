@@ -18,10 +18,11 @@ import { DroppableColumn } from './components/DroppableColumn';
 import { SortableItem } from './components/SortableItem';
 import { getCategoryTheme } from './theme';
 
+export const APP_VERSION = 'v1.1.0';
+
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [viewMode, setViewMode] = useState('desktop'); // 'desktop' | 'mobile'
-  const [mobileTab, setMobileTab] = useState('sources'); // 'sources' | 'groups'
   const [numGroups, setNumGroups] = useState(6);
   const [numSources, setNumSources] = useState(1);
   const [activeSource, setActiveSource] = useState('source-1');
@@ -142,7 +143,6 @@ function App() {
       });
       return newCols;
     });
-    setMobileTab('sources');
   };
 
   const handleRandomize = () => {
@@ -235,7 +235,6 @@ function App() {
 
       return newCols;
     });
-    setMobileTab('groups');
   };
 
   const findContainer = (id) => {
@@ -379,109 +378,111 @@ function App() {
           </button>
         </div>
         
-        <div className="form-group">
-          <label className="form-label">未分配分類數 (來源池)</label>
-          <input 
-            type="number" 
-            className="text-input"
-            value={numSources}
-            onChange={(e) => setNumSources(Math.max(1, parseInt(e.target.value) || 1))}
-            min="1"
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">載入目標</label>
-          <select 
-            className="text-input" 
-            value={activeSource}
-            onChange={(e) => setActiveSource(e.target.value)}
-          >
-            {Array.from({ length: numSources }).map((_, i) => {
-              const sId = `source-${i+1}`;
-              const theme = getCategoryTheme(sId);
-              return (
-                <option key={sId} value={sId}>
-                  分類 {i+1} ({theme.name})
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        
-        <div className="form-group">
-          <label className="form-label">輸入名單 (換行或逗號分隔)</label>
-          <textarea 
-            className="textarea-input"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="例如: 王小明, 陳大頭, 林小美..."
-          />
-        </div>
-        
-        <button className="btn-primary" onClick={handleAddNames}>
-          <Plus size={16} />
-          加入至選定分類
-        </button>
-
-        <button className="btn-secondary" onClick={handleClearAll} style={{ marginBottom: '6px' }}>
-          <RotateCcw size={16} />
-          清空所有名單
-        </button>
-
-        <div className="form-group">
-          <label className="form-label">設定組數</label>
-          <input 
-            type="number" 
-            className="text-input"
-            value={numGroups}
-            onChange={(e) => setNumGroups(Math.max(1, parseInt(e.target.value) || 1))}
-            min="1"
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">每組人數上限 (全域)</label>
-          <input 
-            type="number" 
-            className="text-input"
-            value={maxPerGroup}
-            onChange={(e) => setMaxPerGroup(e.target.value ? Math.max(1, parseInt(e.target.value)) : '')}
-            min="1"
-            placeholder="例如: 3"
-          />
-        </div>
-
-        {numSources > 1 && (
+        <div className="sidebar-scroll-body">
           <div className="form-group">
-            <label className="form-label">各分類抽取配額 (每組)</label>
-            {Array.from({ length: numSources }).map((_, i) => {
-              const sId = `source-${i+1}`;
-              const theme = getCategoryTheme(sId);
-              return (
-                <div key={`quota-${i}`} className="quota-row">
-                  <span className="quota-label" style={{ color: theme.color }}>
-                    <span 
-                      className="source-color-dot" 
-                      style={{ backgroundColor: theme.color, boxShadow: `0 0 6px ${theme.color}` }} 
-                    />
-                    分類 {i+1}
-                  </span>
-                  <input 
-                    type="number" 
-                    className="text-input quota-input"
-                    value={sourceQuotas[sId] || ''}
-                    onChange={(e) => setSourceQuotas(prev => ({...prev, [sId]: e.target.value}))}
-                    min="0"
-                    placeholder="不限"
-                  />
-                </div>
-              );
-            })}
+            <label className="form-label">未分配分類數 (來源池)</label>
+            <input 
+              type="number" 
+              className="text-input"
+              value={numSources}
+              onChange={(e) => setNumSources(Math.max(1, parseInt(e.target.value) || 1))}
+              min="1"
+            />
           </div>
-        )}
 
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+          <div className="form-group">
+            <label className="form-label">載入目標</label>
+            <select 
+              className="text-input" 
+              value={activeSource}
+              onChange={(e) => setActiveSource(e.target.value)}
+            >
+              {Array.from({ length: numSources }).map((_, i) => {
+                const sId = `source-${i+1}`;
+                const theme = getCategoryTheme(sId);
+                return (
+                  <option key={sId} value={sId}>
+                    分類 {i+1} ({theme.name})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">輸入名單 (換行或逗號分隔)</label>
+            <textarea 
+              className="textarea-input"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="例如: 王小明, 陳大頭, 林小美..."
+            />
+          </div>
+          
+          <button className="btn-primary" onClick={handleAddNames}>
+            <Plus size={16} />
+            加入至選定分類
+          </button>
+
+          <button className="btn-secondary" onClick={handleClearAll} style={{ marginBottom: '6px' }}>
+            <RotateCcw size={16} />
+            清空所有名單
+          </button>
+
+          <div className="form-group">
+            <label className="form-label">設定組數</label>
+            <input 
+              type="number" 
+              className="text-input"
+              value={numGroups}
+              onChange={(e) => setNumGroups(Math.max(1, parseInt(e.target.value) || 1))}
+              min="1"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">每組人數上限 (全域)</label>
+            <input 
+              type="number" 
+              className="text-input"
+              value={maxPerGroup}
+              onChange={(e) => setMaxPerGroup(e.target.value ? Math.max(1, parseInt(e.target.value)) : '')}
+              min="1"
+              placeholder="例如: 3"
+            />
+          </div>
+
+          {numSources > 1 && (
+            <div className="form-group">
+              <label className="form-label">各分類抽取配額 (每組)</label>
+              {Array.from({ length: numSources }).map((_, i) => {
+                const sId = `source-${i+1}`;
+                const theme = getCategoryTheme(sId);
+                return (
+                  <div key={`quota-${i}`} className="quota-row">
+                    <span className="quota-label" style={{ color: theme.color }}>
+                      <span 
+                        className="source-color-dot" 
+                        style={{ backgroundColor: theme.color, boxShadow: `0 0 6px ${theme.color}` }} 
+                      />
+                      分類 {i+1}
+                    </span>
+                    <input 
+                      type="number" 
+                      className="text-input quota-input"
+                      value={sourceQuotas[sId] || ''}
+                      onChange={(e) => setSourceQuotas(prev => ({...prev, [sId]: e.target.value}))}
+                      min="0"
+                      placeholder="不限"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="sidebar-footer">
           <button 
             className="btn-secondary" 
             style={{ justifyContent: 'center' }}
@@ -493,7 +494,7 @@ function App() {
 
           <button 
             className="btn-primary" 
-            style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)' }}
+            style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)', marginBottom: 0 }}
             onClick={handleRandomize}
           >
             <Wand2 size={16} />
@@ -508,22 +509,10 @@ function App() {
             <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)} title={sidebarOpen ? "隱藏面板" : "顯示面板"}>
               <Menu size={20} />
             </button>
-            <h1 className="workspace-title">智能分組平台</h1>
-          </div>
-
-          <div className="mobile-view-tabs">
-            <button 
-              className={`mobile-tab-btn ${mobileTab === 'sources' ? 'active' : ''}`}
-              onClick={() => setMobileTab('sources')}
-            >
-              未分配來源 ({totalSourcePeople})
-            </button>
-            <button 
-              className={`mobile-tab-btn ${mobileTab === 'groups' ? 'active' : ''}`}
-              onClick={() => setMobileTab('groups')}
-            >
-              分組結果 ({totalGroupPeople})
-            </button>
+            <h1 className="workspace-title">
+              智能分組平台
+              <span className="version-badge">{APP_VERSION}</span>
+            </h1>
           </div>
 
           <div className="top-bar-actions">
@@ -561,7 +550,7 @@ function App() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className={`board-layout tab-${mobileTab}`}>
+          <div className="board-layout">
             <div className="source-area">
               <h3 className="area-title">未分配名單 (來源池)</h3>
               <div className={`unassigned-zone ${numSources > 2 ? 'multi-sources' : ''}`}>

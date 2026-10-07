@@ -65,6 +65,39 @@ input, textarea {
   height: 100vh;
 }
 
+.sidebar-scroll-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+  min-height: 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--glass-border);
+}
+
+.version-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+  display: inline-block;
+}
+
 .sidebar.collapsed {
   transform: translateX(-100%);
   opacity: 0;
@@ -753,28 +786,39 @@ input, textarea {
 }
 
 .app-container.mode-mobile .main-content {
-  max-width: 440px;
+  max-width: 480px;
   width: 100%;
   height: 100vh;
+  max-height: 100vh;
   margin: 0 auto;
   border-left: 1px solid var(--glass-border);
   border-right: 1px solid var(--glass-border);
   background: rgba(15, 23, 42, 0.85);
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.6);
-  padding: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .app-container.mode-mobile .sidebar {
   position: fixed !important;
   top: 0;
   left: 0;
-  width: 280px !important;
+  width: min(300px, 85vw) !important;
   height: 100vh !important;
+  max-height: 100vh !important;
   z-index: 1000 !important;
   box-shadow: 10px 0 35px rgba(0, 0, 0, 0.75);
   transform: translateX(0);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   background: rgba(15, 23, 42, 0.98);
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  padding: 12px !important;
 }
 
 .app-container.mode-mobile .sidebar.collapsed {
@@ -800,45 +844,71 @@ input, textarea {
   z-index: 999;
 }
 
-.app-container.mode-mobile .mobile-view-tabs {
-  display: flex !important;
-}
-
+/* 同一畫面上下分區呈現：未分配來源在上方，分組結果在下方，可直接跨區拖曳卡片 */
 .app-container.mode-mobile .board-layout {
   display: flex !important;
   flex-direction: column !important;
-  height: 100%;
-  overflow: hidden;
-  gap: 0;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: calc(100% - 46px) !important;
+  max-height: calc(100% - 46px) !important;
+  overflow: hidden !important;
+  gap: 8px !important;
 }
 
-.app-container.mode-mobile .board-layout.tab-sources .group-area {
-  display: none !important;
-}
-
-.app-container.mode-mobile .board-layout.tab-sources .source-area {
+.app-container.mode-mobile .source-area {
   display: flex !important;
-  flex: 1;
-  height: 100%;
+  flex: 0 0 auto !important;
+  height: 36% !important;
+  max-height: 38% !important;
+  min-height: 110px !important;
+  overflow: hidden !important;
+  padding: 8px !important;
 }
 
-.app-container.mode-mobile .board-layout.tab-groups .source-area {
-  display: none !important;
+.app-container.mode-mobile .source-area .area-title {
+  font-size: 0.8rem !important;
+  margin-bottom: 4px !important;
 }
 
-.app-container.mode-mobile .board-layout.tab-groups .group-area {
+.app-container.mode-mobile .unassigned-zone {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.app-container.mode-mobile .group-area {
   display: flex !important;
-  flex: 1;
-  height: 100%;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 8px !important;
+}
+
+.app-container.mode-mobile .group-area .area-title {
+  font-size: 0.8rem !important;
+  margin-bottom: 4px !important;
 }
 
 .app-container.mode-mobile .groups-matrix {
-  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-  gap: 8px;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+  gap: 6px !important;
+  align-items: stretch;
 }
 
-.app-container.mode-desktop .mobile-view-tabs {
-  display: none !important;
+.app-container.mode-mobile .column-header {
+  padding: 5px 8px !important;
+  font-size: 0.78rem !important;
+}
+
+.app-container.mode-mobile .column-content {
+  padding: 4px !important;
+  gap: 4px !important;
 }
 
 /* ==========================================================================
@@ -874,13 +944,19 @@ input, textarea {
     position: fixed !important;
     top: 0;
     left: 0;
-    width: 280px !important;
+    width: min(300px, 85vw) !important;
     height: 100vh !important;
+    max-height: 100vh !important;
     z-index: 1000 !important;
     box-shadow: 10px 0 35px rgba(0, 0, 0, 0.75);
     transform: translateX(0);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    background: rgba(15, 23, 42, 0.95);
+    background: rgba(15, 23, 42, 0.98);
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 12px !important;
   }
 
   .sidebar.collapsed {
@@ -907,68 +983,100 @@ input, textarea {
   }
 
   .main-content {
-    padding: 10px 12px;
+    padding: 10px;
     max-width: 100% !important;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
 
   .top-bar {
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
 
   .workspace-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 
-  .mobile-view-tabs {
-    display: flex !important;
-    flex: 1;
-    max-width: 240px;
-    justify-content: center;
+  .version-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
   }
 
-  .mobile-tab-btn {
-    padding: 5px 8px;
+  .rwd-tab-btn {
+    padding: 4px 8px;
     font-size: 0.75rem;
-    flex: 1;
-    text-align: center;
   }
 
+  /* 手機螢幕同屏雙欄配置：未分配來源在上方，分組結果在下方，可直接拖曳 */
   .board-layout {
     display: flex !important;
     flex-direction: column !important;
-    height: 100%;
-    overflow: hidden;
-    gap: 0;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: calc(100% - 46px) !important;
+    max-height: calc(100% - 46px) !important;
+    overflow: hidden !important;
+    gap: 8px !important;
   }
 
-  .board-layout.tab-sources .group-area {
-    display: none !important;
-  }
-
-  .board-layout.tab-sources .source-area {
+  .source-area {
     display: flex !important;
-    flex: 1;
-    height: 100%;
+    flex: 0 0 auto !important;
+    height: 36% !important;
+    max-height: 38% !important;
+    min-height: 110px !important;
+    overflow: hidden !important;
+    padding: 8px !important;
   }
 
-  .board-layout.tab-groups .source-area {
-    display: none !important;
+  .source-area .area-title {
+    font-size: 0.8rem !important;
+    margin-bottom: 4px !important;
   }
 
-  .board-layout.tab-groups .group-area {
+  .unassigned-zone {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .group-area {
     display: flex !important;
-    flex: 1;
-    height: 100%;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 8px !important;
+  }
+
+  .group-area .area-title {
+    font-size: 0.8rem !important;
+    margin-bottom: 4px !important;
   }
 
   .groups-matrix {
-    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
-    gap: 8px;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 6px !important;
+    align-items: stretch;
   }
 
   .column-header {
-    padding: 6px 10px;
-    font-size: 0.8rem;
+    padding: 5px 8px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .column-content {
+    padding: 4px !important;
+    gap: 4px !important;
   }
 }
