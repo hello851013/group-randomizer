@@ -22,7 +22,7 @@ import { SortableItem } from './components/SortableItem';
 import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.2.2';
+export const APP_VERSION = 'v1.2.3';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
@@ -291,46 +291,50 @@ function App() {
       const maxLimit = parseInt(maxPerGroup) || 0;
 
       // 4. Distribute items
+      // 步驟 4A：處理各分類抽取配額 (sourceQuotas)，釘選卡片計入配額與上限
       Object.keys(availableBySource).forEach(src => {
         const items = availableBySource[src];
         const quota = parseInt(sourceQuotas[src]);
 
         if (quota > 0) {
           for (const groupKey of activeGroupKeys) {
-            const pinnedOfSource = newCols[groupKey].filter(i => i.sourceId === src).length;
+            // 計算該組目前已有的該分類釘選人數
+            const pinnedOfSource = newCols[groupKey].filter(i => (i.sourceId || 'source-1') === src).length;
             const needed = Math.max(0, quota - pinnedOfSource);
             for (let i = 0; i < needed; i++) {
-              if (items.length > 0) {
+              // 嚴格遵守每組上限 (含已釘選者)
+              const isGroupFull = maxLimit > 0 && newCols[groupKey].length >= maxLimit;
+              if (items.length > 0 && !isGroupFull) {
                 newCols[groupKey].push(items.pop());
-              }
-            }
-          }
-          // Overflow goes back to source
-          if (items.length > 0) {
-            newCols[src].push(...items);
-          }
-        } else {
-          let currentGroupIndex = 0;
-          while (items.length > 0) {
-            let placed = false;
-            let startIdx = currentGroupIndex;
-            do {
-              const groupKey = activeGroupKeys[currentGroupIndex];
-              const isFull = maxLimit > 0 && newCols[groupKey].length >= maxLimit;
-              if (!isFull) {
-                newCols[groupKey].push(items.pop());
-                placed = true;
-                currentGroupIndex = (currentGroupIndex + 1) % activeGroupKeys.length;
+              } else {
                 break;
               }
-              currentGroupIndex = (currentGroupIndex + 1) % activeGroupKeys.length;
-            } while (currentGroupIndex !== startIdx);
-
-            if (!placed) {
-              newCols[src].push(...items);
-              items.length = 0;
             }
           }
+        }
+      });
+
+      // 步驟 4B：分配剩餘卡片
+      // 關鍵修復：釘選卡片直接計入各組人數限制中！優先補給目前總人數最少的組別，且嚴格不超過 maxLimit
+      Object.keys(availableBySource).forEach(src => {
+        const items = availableBySource[src];
+        while (items.length > 0) {
+          // 篩選出未滿額的組別（包含釘選卡片計算總人數）
+          const availableGroups = activeGroupKeys.filter(gk => 
+            maxLimit === 0 || newCols[gk].length < maxLimit
+          );
+
+          if (availableGroups.length === 0) {
+            // 所有組別皆達到每組上限，剩餘名單退回來源池
+            newCols[src].push(...items);
+            items.length = 0;
+            break;
+          }
+
+          // 按照目前組內總人數（包含釘選）升冪排序，優先分配給目前最少人的組別
+          availableGroups.sort((a, b) => newCols[a].length - newCols[b].length);
+          const targetGroup = availableGroups[0];
+          newCols[targetGroup].push(items.pop());
         }
       });
 
@@ -382,21 +386,7 @@ function App() {
         updatedActiveItem = { ...activeItem, isPinned: true };
       }
 
-      if (overContainer.startsWith('group-')) {
-        const maxLimit = parseInt(maxPerGroup) || 0;
-        if (maxLimit > 0 && overItems.length >= maxLimit) {
-          return prev;
-        }
-
-        const src = updatedActiveItem?.sourceId || 'source-1';
-        const quota = parseInt(sourceQuotas[src]);
-        if (quota > 0) {
-          const currentCount = overItems.filter(i => (i.sourceId || 'source-1') === src).length;
-          if (currentCount >= quota) {
-            return prev;
-          }
-        }
-      }
+      // 需求 1：手動拉動卡片時「完全不限制各組上限與配額」，讓使用者可以自由任意拖放調整卡片
 
       const activeIndex = activeItems.findIndex(i => i.id === active.id);
       const overIndex = overId in prev ? overItems.length + 1 : overItems.findIndex(i => i.id === overId);
