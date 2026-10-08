@@ -1049,6 +1049,55 @@ input, textarea {
   box-sizing: border-box;
 }
 
+/* mode-mobile 下頂部操作區自適應，徹底防止任何按鈕或切換器被擠壓或溢出畫面 */
+.app-container.mode-mobile .top-bar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.app-container.mode-mobile .top-bar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.app-container.mode-mobile .workspace-title {
+  font-size: 1.05rem !important;
+}
+
+.app-container.mode-mobile .top-bar-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
+}
+
+.app-container.mode-mobile .action-pill-btn {
+  padding: 5px 8px !important;
+  font-size: 0.74rem !important;
+  gap: 4px !important;
+}
+
+.app-container.mode-mobile .reset-pill-btn .btn-label-text,
+.app-container.mode-mobile .share-pill-btn .btn-label-text {
+  display: none !important;
+}
+
+.app-container.mode-mobile .rwd-switcher {
+  display: flex !important;
+  margin-left: auto !important;
+}
+
+.app-container.mode-mobile .rwd-tab-btn {
+  padding: 4px 7px !important;
+  font-size: 0.74rem !important;
+}
+
 .app-container.mode-mobile .sidebar {
   position: fixed !important;
   top: 0;

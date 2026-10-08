@@ -22,7 +22,7 @@ import { SortableItem } from './components/SortableItem';
 import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.2.1';
+export const APP_VERSION = 'v1.2.2';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
@@ -243,14 +243,23 @@ function App() {
       const availableBySource = {};
       for (let i = 1; i <= safeNumSources; i++) availableBySource[`source-${i}`] = [];
 
+      // 重要修復：確保位於來源池 source-X 的卡片必定歸屬於該來源池，解決跨分類拖曳後被誤判為 source-1 的問題
       Object.keys(prev).forEach(key => {
-        (prev[key] || []).forEach(item => {
-          if (!item.isPinned) {
-            const src = item.sourceId || 'source-1';
+        if (key.startsWith('source-')) {
+          (prev[key] || []).forEach(item => {
+            const src = key;
             if (!availableBySource[src]) availableBySource[src] = [];
-            availableBySource[src].push({ ...item }); // clone each item
-          }
-        });
+            availableBySource[src].push({ ...item, sourceId: src, isPinned: false });
+          });
+        } else if (key.startsWith('group-')) {
+          (prev[key] || []).forEach(item => {
+            if (!item.isPinned) {
+              const src = item.sourceId || 'source-1';
+              if (!availableBySource[src]) availableBySource[src] = [];
+              availableBySource[src].push({ ...item });
+            }
+          });
+        }
       });
 
       // Check if there's anything to distribute
@@ -363,13 +372,23 @@ function App() {
       const activeItem = activeItems.find(i => i.id === active.id);
       const overItems = prev[overContainer];
 
+      if (!activeItem) return prev;
+
+      // 拖拉時自動切換分類：拖進來源池 (source-X) 時更新 sourceId，拖進組別時自動釘選固定
+      let updatedActiveItem = activeItem;
+      if (overContainer.startsWith('source-')) {
+        updatedActiveItem = { ...activeItem, sourceId: overContainer, isPinned: false };
+      } else if (overContainer.startsWith('group-') && activeContainer.startsWith('source-')) {
+        updatedActiveItem = { ...activeItem, isPinned: true };
+      }
+
       if (overContainer.startsWith('group-')) {
         const maxLimit = parseInt(maxPerGroup) || 0;
         if (maxLimit > 0 && overItems.length >= maxLimit) {
           return prev;
         }
 
-        const src = activeItem?.sourceId || 'source-1';
+        const src = updatedActiveItem?.sourceId || 'source-1';
         const quota = parseInt(sourceQuotas[src]);
         if (quota > 0) {
           const currentCount = overItems.filter(i => (i.sourceId || 'source-1') === src).length;
@@ -389,7 +408,7 @@ function App() {
         ],
         [overContainer]: [
           ...prev[overContainer].slice(0, overIndex),
-          activeItems[activeIndex],
+          updatedActiveItem,
           ...prev[overContainer].slice(overIndex, prev[overContainer].length),
         ],
       };
@@ -401,19 +420,35 @@ function App() {
     const activeContainer = findContainer(active.id);
     const overContainer = findContainer(over?.id);
 
-    if (!activeContainer || !overContainer || activeContainer !== overContainer) {
+    if (!activeContainer || !overContainer) {
       setActiveId(null);
       return;
     }
 
-    const activeIndex = columns[activeContainer].findIndex(i => i.id === active.id);
-    const overIndex = columns[overContainer].findIndex(i => i.id === over?.id);
+    // 確保來源池卡片所屬 sourceId 一致
+    if (activeContainer.startsWith('source-')) {
+      setColumns(prev => {
+        const items = prev[activeContainer] || [];
+        const itemIdx = items.findIndex(i => i.id === active.id);
+        if (itemIdx >= 0 && items[itemIdx].sourceId !== activeContainer) {
+          const newItems = [...items];
+          newItems[itemIdx] = { ...newItems[itemIdx], sourceId: activeContainer, isPinned: false };
+          return { ...prev, [activeContainer]: newItems };
+        }
+        return prev;
+      });
+    }
 
-    if (activeIndex !== overIndex) {
-      setColumns((prev) => ({
-        ...prev,
-        [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
-      }));
+    if (activeContainer === overContainer) {
+      const activeIndex = columns[activeContainer].findIndex(i => i.id === active.id);
+      const overIndex = columns[overContainer].findIndex(i => i.id === over?.id);
+
+      if (activeIndex !== overIndex && activeIndex >= 0 && overIndex >= 0) {
+        setColumns((prev) => ({
+          ...prev,
+          [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
+        }));
+      }
     }
 
     setActiveId(null);
