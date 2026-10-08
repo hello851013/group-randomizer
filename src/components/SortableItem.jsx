@@ -32,11 +32,7 @@ export function SortableItem({
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 100 : 1,
-    ...(isPinned
-      ? {}
-      : {
-          borderLeft: `3px solid ${theme.color}`,
-        }),
+    borderLeft: `3px solid ${theme.color}`,
   };
 
   // 需求 3：名單卡片的前面圓圈內僅放入一個字元
@@ -66,17 +62,14 @@ export function SortableItem({
       <div className="card-name">
         <div
           className="avatar-placeholder"
-          style={
-            isPinned
-              ? { background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#ffffff', boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)' }
-              : { background: theme.avatarGradient }
-          }
+          style={{ background: theme.avatarGradient }}
         >
           {getInitials(person?.name)}
         </div>
         
+        {/* 需求 1 & 4：完整呈現卡片名稱，釘選僅顯示金色小圖示，保留原分類顏色 */}
         <span className="person-name" title={person?.name}>
-          {isPinned && <span className="pinned-indicator" title="已釘選">📌</span>}
+          {isPinned && <span className="pinned-indicator" title="已釘選固定">📌</span>}
           {person?.name}
         </span>
 

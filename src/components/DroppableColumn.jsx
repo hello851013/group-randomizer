@@ -47,7 +47,6 @@ export function DroppableColumn({
 
   const theme = isSpecial ? getCategoryTheme(id) : null;
   const density = getDensity(items.length);
-  const isSplitGrid = isSpecial && items.length >= 3;
 
   return (
     <div 
@@ -106,7 +105,7 @@ export function DroppableColumn({
         </span>
       </div>
       <div 
-        className={`column-content column-content-${density} ${isSplitGrid ? 'split-2col' : ''}`} 
+        className={`column-content column-content-${density}`} 
         ref={setNodeRef}
       >
         <SortableContext 

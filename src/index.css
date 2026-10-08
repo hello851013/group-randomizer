@@ -668,45 +668,24 @@ input, textarea {
   min-height: 0;
 }
 
-/* Split 2-Column Mode (在分類框中分左右兩排，徹底消除垂直下拉霸) */
-.column-content.split-2col {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  align-content: start;
-  gap: 4px;
-}
-
-.column-content.split-2col .draggable-card {
-  padding: 4px 6px;
-  font-size: 0.78rem;
-}
-
-.column-content.split-2col .avatar-placeholder {
-  width: 18px;
-  height: 18px;
-  font-size: 0.65rem;
-}
-
 /* Density: compact */
 .column-content-compact {
-  gap: 3px;
-  padding: 5px;
-}
-
-/* Density: mini (starts 2-column grid to maximize cards in 1 page) */
-.column-content-mini {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
-  align-content: start;
   gap: 3px;
   padding: 4px;
 }
 
-/* Density: micro (ultra compact grid) */
+/* Density: mini */
+.column-content-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+}
+
+/* Density: micro */
 .column-content-micro {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   padding: 3px;
 }
@@ -818,9 +797,9 @@ input, textarea {
 
 /* Category Pill - 完整顯示在卡片最右側，不被擠壓切角 */
 .category-pill {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  padding: 1px 6px;
+  padding: 1px 4px;
   border-radius: 4px;
   border: 1px solid transparent;
   flex-shrink: 0;
@@ -829,46 +808,18 @@ input, textarea {
   display: inline-flex;
   align-items: center;
   margin-left: auto;
+  max-width: 44px;
 }
 
 .cat-short {
-  display: none;
-}
-
-.cat-full {
-  display: inline;
-}
-
-.pin-text {
-  display: inline;
-}
-
-.card-density-compact .category-pill,
-.card-density-mini .category-pill,
-.card-density-micro .category-pill,
-.app-container.mode-mobile .category-pill {
-  font-size: 0.62rem;
-  padding: 1px 4px;
-}
-
-.card-density-compact .cat-full,
-.card-density-mini .cat-full,
-.card-density-micro .cat-full,
-.app-container.mode-mobile .cat-full {
-  display: none !important;
-}
-
-.card-density-compact .cat-short,
-.card-density-mini .cat-short,
-.card-density-micro .cat-short,
-.app-container.mode-mobile .cat-short {
   display: inline !important;
 }
 
-.card-density-compact .pin-text,
-.card-density-mini .pin-text,
-.card-density-micro .pin-text,
-.app-container.mode-mobile .pin-text {
+.cat-full {
+  display: none !important;
+}
+
+.pin-text {
   display: none !important;
 }
 
@@ -941,39 +892,71 @@ input, textarea {
   vertical-align: middle;
 }
 
-/* 🌟 PINNED CARD PROMINENCE 🌟 */
+/* 需求 4：釘選改為僅顯示金色釘子圖示，不加多餘光暈特效，卡片完整保留原分類樣式與顏色 */
 .draggable-card.is-pinned {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(217, 119, 6, 0.14)) !important;
-  border: 1.5px solid #f59e0b !important;
-  border-left: 4px solid #f59e0b !important;
-  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4), inset 0 0 8px rgba(245, 158, 11, 0.12) !important;
-  position: relative;
-  z-index: 2;
-}
-
-.draggable-card.is-pinned:hover {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32), rgba(217, 119, 6, 0.2)) !important;
-  box-shadow: 0 0 18px rgba(245, 158, 11, 0.55), inset 0 0 10px rgba(245, 158, 11, 0.18) !important;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .draggable-card.is-pinned .person-name {
-  font-weight: 700;
-  color: #fffbeb;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.pinned-badge {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
+/* 連續重新分組動畫與提示 */
+.iterating-banner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+  border: 1px solid rgba(236, 72, 153, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
   font-weight: 700;
-  font-size: 0.65rem;
-  padding: 1px 5px;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-  display: inline-flex;
+  color: #fbcfe8;
+  display: flex;
   align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-  white-space: nowrap;
+  justify-content: space-between;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.25);
+  animation: pulse-border 1s infinite alternate;
+}
+
+.iterating-stop-btn {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.iterating-stop-btn:hover {
+  background: #ef4444;
+}
+
+.randomize-pill-btn.iterating {
+  background: linear-gradient(135deg, #ec4899, #f59e0b) !important;
+  animation: pulse-glow 1s infinite alternate;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  from { box-shadow: 0 0 8px rgba(236, 72, 153, 0.4); }
+  to { box-shadow: 0 0 18px rgba(245, 158, 11, 0.8); }
+}
+
+@keyframes pulse-border {
+  from { border-color: rgba(99, 102, 241, 0.4); }
+  to { border-color: rgba(236, 72, 153, 0.8); }
 }
 
 .card-density-mini .pinned-badge,

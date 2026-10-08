@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   DndContext, 
   pointerWithin,
@@ -22,7 +22,7 @@ import { SortableItem } from './components/SortableItem';
 import { ShareModal } from './components/ShareModal';
 import { getCategoryTheme } from './theme';
 
-export const APP_VERSION = 'v1.2.3';
+export const APP_VERSION = 'v1.2.4';
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 768);
@@ -34,6 +34,29 @@ function App() {
   const [maxPerGroup, setMaxPerGroup] = useState('');
   const [inputText, setInputText] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // 需求 3：連續分組次數與定時執行狀態
+  const [repeatCount, setRepeatCount] = useState(1);
+  const [isIterating, setIsIterating] = useState(false);
+  const [currentIteration, setCurrentIteration] = useState(0);
+  const timerRef = useRef(null);
+
+  const stopIterating = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsIterating(false);
+    setCurrentIteration(0);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   // 自定義名稱狀態 (分類與組別)
   const [categoryNames, setCategoryNames] = useState({});
@@ -177,6 +200,7 @@ function App() {
 
   const handleClearAll = () => {
     if (window.confirm("確定要清空所有名單嗎？")) {
+      stopIterating();
       setColumns(prev => {
         const newCols = {};
         for (let i = 1; i <= safeNumSources; i++) newCols[`source-${i}`] = [];
@@ -209,19 +233,18 @@ function App() {
   };
 
   const handleReset = () => {
+    stopIterating();
     setColumns(prev => {
       const newCols = {};
       
       // Initialize all source columns and reset their items' pinned status
-      Object.keys(prev).forEach(key => {
-        if (key.startsWith('source-')) {
-          newCols[key] = (prev[key] || []).map(item => ({ ...item, isPinned: false }));
-        } else if (key.startsWith('group-')) {
-          newCols[key] = [];
-        } else {
-          newCols[key] = [...(prev[key] || [])];
-        }
-      });
+      for (let i = 1; i <= safeNumSources; i++) {
+        const sId = `source-${i}`;
+        newCols[sId] = (prev[sId] || []).map(item => ({ ...item, isPinned: false }));
+      }
+      for (let i = 1; i <= safeNumGroups; i++) {
+        newCols[`group-${i}`] = [];
+      }
       
       // Return ALL items from every group back to their respective source pool
       const groupKeys = Object.keys(prev).filter(k => k.startsWith('group-'));
@@ -342,12 +365,46 @@ function App() {
     });
   };
 
-  const findContainer = (id) => {
-    if (id in columns) {
+  // 需求 3：啟動連續分組 (每 1 秒重新分組一次，至指定次數)
+  const startRandomize = () => {
+    if (isIterating) {
+      stopIterating();
+      return;
+    }
+
+    const total = Math.max(1, parseInt(repeatCount, 10) || 1);
+    if (total <= 1) {
+      handleRandomize();
+      return;
+    }
+
+    // 立即執行第 1 次
+    handleRandomize();
+    setIsIterating(true);
+    setCurrentIteration(1);
+
+    let count = 1;
+    timerRef.current = setInterval(() => {
+      count += 1;
+      handleRandomize();
+      setCurrentIteration(count);
+
+      if (count >= total) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setIsIterating(false);
+      }
+    }, 1000); // 精確每 1 秒做一次重新分組
+  };
+
+  // 需求 2：支援傳入最新 prev 狀態的 findContainer，徹底根除重置後或分組間拖拉無法更動的 stale closure bug
+  const findContainer = (id, cols = columns) => {
+    if (!id || !cols) return null;
+    if (id in cols) {
       return id;
     }
-    return Object.keys(columns).find(key => 
-      columns[key].some(item => item.id === id)
+    return Object.keys(cols).find(key => 
+      cols[key]?.some(item => item.id === id)
     );
   };
 
@@ -364,42 +421,42 @@ function App() {
       return;
     }
 
-    const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(overId);
-
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      return;
-    }
-
     setColumns((prev) => {
-      const activeItems = prev[activeContainer];
-      const activeItem = activeItems.find(i => i.id === active.id);
-      const overItems = prev[overContainer];
+      const activeContainer = findContainer(active.id, prev);
+      const overContainer = findContainer(overId, prev);
 
-      if (!activeItem) return prev;
-
-      // 拖拉時自動切換分類：拖進來源池 (source-X) 時更新 sourceId，拖進組別時自動釘選固定
-      let updatedActiveItem = activeItem;
-      if (overContainer.startsWith('source-')) {
-        updatedActiveItem = { ...activeItem, sourceId: overContainer, isPinned: false };
-      } else if (overContainer.startsWith('group-') && activeContainer.startsWith('source-')) {
-        updatedActiveItem = { ...activeItem, isPinned: true };
+      if (!activeContainer || !overContainer || activeContainer === overContainer) {
+        return prev;
       }
 
-      // 需求 1：手動拉動卡片時「完全不限制各組上限與配額」，讓使用者可以自由任意拖放調整卡片
-
+      const activeItems = prev[activeContainer] || [];
+      const overItems = prev[overContainer] || [];
       const activeIndex = activeItems.findIndex(i => i.id === active.id);
-      const overIndex = overId in prev ? overItems.length + 1 : overItems.findIndex(i => i.id === overId);
+      if (activeIndex === -1) return prev;
+
+      const activeItem = activeItems[activeIndex];
+      let updatedActiveItem = activeItem;
+      // 拖回來源池時更新 sourceId
+      if (overContainer.startsWith('source-')) {
+        updatedActiveItem = { ...activeItem, sourceId: overContainer, isPinned: false };
+      }
+
+      const isOverAContainer = overId in prev;
+      let overIndex;
+      if (isOverAContainer) {
+        overIndex = overItems.length;
+      } else {
+        const idx = overItems.findIndex(i => i.id === overId);
+        overIndex = idx >= 0 ? idx : overItems.length;
+      }
 
       return {
         ...prev,
-        [activeContainer]: [
-          ...prev[activeContainer].filter((item) => item.id !== active.id),
-        ],
+        [activeContainer]: activeItems.filter(i => i.id !== active.id),
         [overContainer]: [
-          ...prev[overContainer].slice(0, overIndex),
+          ...overItems.slice(0, overIndex),
           updatedActiveItem,
-          ...prev[overContainer].slice(overIndex, prev[overContainer].length),
+          ...overItems.slice(overIndex),
         ],
       };
     });
@@ -407,39 +464,62 @@ function App() {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    const activeContainer = findContainer(active.id);
-    const overContainer = findContainer(over?.id);
-
-    if (!activeContainer || !overContainer) {
+    if (!over) {
       setActiveId(null);
       return;
     }
 
-    // 確保來源池卡片所屬 sourceId 一致
-    if (activeContainer.startsWith('source-')) {
-      setColumns(prev => {
-        const items = prev[activeContainer] || [];
-        const itemIdx = items.findIndex(i => i.id === active.id);
-        if (itemIdx >= 0 && items[itemIdx].sourceId !== activeContainer) {
-          const newItems = [...items];
-          newItems[itemIdx] = { ...newItems[itemIdx], sourceId: activeContainer, isPinned: false };
-          return { ...prev, [activeContainer]: newItems };
+    setColumns((prev) => {
+      const activeContainer = findContainer(active.id, prev);
+      const overContainer = findContainer(over.id, prev);
+
+      if (!activeContainer || !overContainer) {
+        return prev;
+      }
+
+      const activeItems = prev[activeContainer] || [];
+      const overItems = prev[overContainer] || [];
+      const activeIndex = activeItems.findIndex(i => i.id === active.id);
+      if (activeIndex === -1) return prev;
+
+      // 同一容器內排序
+      if (activeContainer === overContainer) {
+        const overIndex = activeItems.findIndex(i => i.id === over.id);
+        if (overIndex !== -1 && activeIndex !== overIndex) {
+          return {
+            ...prev,
+            [activeContainer]: arrayMove(activeItems, activeIndex, overIndex),
+          };
         }
         return prev;
-      });
-    }
-
-    if (activeContainer === overContainer) {
-      const activeIndex = columns[activeContainer].findIndex(i => i.id === active.id);
-      const overIndex = columns[overContainer].findIndex(i => i.id === over?.id);
-
-      if (activeIndex !== overIndex && activeIndex >= 0 && overIndex >= 0) {
-        setColumns((prev) => ({
-          ...prev,
-          [overContainer]: arrayMove(prev[overContainer], activeIndex, overIndex),
-        }));
       }
-    }
+
+      // 跨容器轉移（解決快速拖拉未觸發 handleDragOver 或丟至新分組的情境）
+      const activeItem = activeItems[activeIndex];
+      let updatedActiveItem = activeItem;
+      if (overContainer.startsWith('source-')) {
+        updatedActiveItem = { ...activeItem, sourceId: overContainer, isPinned: false };
+      }
+
+      const isOverAContainer = over.id in prev;
+      let overIndex;
+      if (isOverAContainer) {
+        overIndex = overItems.length;
+      } else {
+        const idx = overItems.findIndex(i => i.id === over.id);
+        overIndex = idx >= 0 ? idx : overItems.length;
+      }
+
+      return {
+        ...prev,
+        [activeContainer]: activeItems.filter(i => i.id !== active.id),
+        [overContainer]: [
+          ...overItems.slice(0, overIndex),
+          updatedActiveItem,
+          ...overItems.slice(overIndex),
+        ],
+      };
+    });
 
     setActiveId(null);
   };
@@ -645,6 +725,27 @@ function App() {
             />
           </div>
 
+          {/* 需求 3：連續分組次數 (每 1 秒做一次重新分組) */}
+          <div className="form-group">
+            <label className="form-label">連續分組次數 (每 1 秒重新分組)</label>
+            <input 
+              type="number" 
+              className="text-input"
+              value={repeatCount}
+              onChange={(e) => setRepeatCount(e.target.value)}
+              onBlur={() => {
+                if (!repeatCount || parseInt(repeatCount, 10) < 1) {
+                  setRepeatCount(1);
+                } else {
+                  setRepeatCount(Math.min(100, Math.max(1, parseInt(repeatCount, 10))));
+                }
+              }}
+              min="1"
+              max="100"
+              placeholder="預設 1 次"
+            />
+          </div>
+
           {safeNumSources > 1 && (
             <div className="form-group">
               <label className="form-label">各分類抽取配額 (每組)</label>
@@ -710,14 +811,23 @@ function App() {
               <span className="btn-label-text">輸出分享</span>
             </button>
 
-            {/* 隨機分組核心按鈕 */}
+            {/* 隨機分組核心按鈕 (支援連續分組次數) */}
             <button 
-              className="action-pill-btn randomize-pill-btn" 
-              onClick={handleRandomize}
-              title="開始隨機分組"
+              className={`action-pill-btn randomize-pill-btn ${isIterating ? 'iterating' : ''}`} 
+              onClick={startRandomize}
+              title={isIterating ? "點擊停止連續分組" : "開始隨機分組"}
             >
-              <Wand2 size={15} />
-              <span>隨機分組</span>
+              {isIterating ? (
+                <>
+                  <Sparkles size={15} className="spin-icon" />
+                  <span>分組中 ({currentIteration}/{repeatCount})</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 size={15} />
+                  <span>隨機分組</span>
+                </>
+              )}
             </button>
 
             {/* RWD 檢視切換 */}
@@ -755,6 +865,17 @@ function App() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
+          {isIterating && (
+            <div className="iterating-banner">
+              <span>
+                🎲 連續隨機分組進行中：第 <strong>{currentIteration}</strong> / {repeatCount} 次（每 1 秒重新分組）
+              </span>
+              <button className="iterating-stop-btn" onClick={stopIterating}>
+                停止
+              </button>
+            </div>
+          )}
+
           <div className="board-layout">
             <div className="source-area">
               <h3 className="area-title">未分配名單 (來源池)</h3>
